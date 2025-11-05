@@ -8,7 +8,10 @@
 import SwiftUI
 
 struct HomePage: View {
-    @State private var trashBins: [String] = []
+    @StateObject private var trashBinModel = TrashBinModel()
+    
+    @State private var isShowingAddBinAlert = false
+    @State private var newBinName: String = ""
     
     var body: some View {
         NavigationView {
@@ -28,7 +31,13 @@ struct HomePage: View {
                     
                     ScrollView {
                         VStack {
-                            if trashBins.isEmpty {
+                            if trashBinModel.isLoading {
+                                ProgressView()
+                                    .controlSize(.large)
+                                    .padding(.top, 50)
+                                    .tint(.white)
+                                
+                            } else if trashBinModel.trashBins.isEmpty {
                                 GeometryReader { geometry in
                                     VStack {
                                         Text("Empty")
@@ -40,10 +49,11 @@ struct HomePage: View {
                                 }
                             } else {
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                                    ForEach(trashBins, id: \.self) { bin in
-                                        NavigationLink(destination: DetailPage(trashName: bin)) {
+                                    ForEach(trashBinModel.trashBins) { bin in
+                                        
+                                        NavigationLink(destination: DetailPage(trashBin: bin)) {
                                             VStack {
-                                                Text(bin)
+                                                Text(bin.name)
                                                     .foregroundColor(.white)
                                                     .font(.headline)
                                                 Image("trash")
@@ -67,8 +77,8 @@ struct HomePage: View {
                 }
                 
                 Button(action: {
-                    let newBin = "Trash \(trashBins.count + 1)"
-                    trashBins.append(newBin)
+                    newBinName = ""
+                    isShowingAddBinAlert = true
                 }) {
                     Image(systemName: "plus.circle.fill")
                         .foregroundColor(.white)
@@ -78,29 +88,26 @@ struct HomePage: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .padding(24)
             }
+            .onAppear {
+                Task {
+                    await trashBinModel.fetchTrashBins()
+                }
+            }
+            .alert("Add New Trash Bin", isPresented: $isShowingAddBinAlert) {
+                TextField("E.g., Trash Bin Dapur", text: $newBinName)
+                    .autocorrectionDisabled()
+                
+                Button("Cancel", role: .cancel) { }
+                Button("Save") {
+                    if !newBinName.isEmpty {
+                        Task {
+                            await trashBinModel.createTrashBin(name: newBinName)
+                        }
+                    }
+                }
+            } message: {
+                Text("Please enter a name for your new trash bin.")
+            }
         }
     }
-}
-
-struct MainTabView: View {
-    var body: some View {
-        TabView {
-            HomePage()
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
-            NotificationPage()
-                .tabItem {
-                    Label("Notification", systemImage: "bell.fill")
-                }
-            ProfilePage()
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
-        }
-    }
-}
-
-#Preview {
-    HomePage()
 }

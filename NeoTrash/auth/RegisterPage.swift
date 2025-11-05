@@ -137,11 +137,12 @@ struct RegisterPage: View {
                         
                         Button {
                             Task {
-                                await viewModel.register(fullName: fullName, email: email, password: password, confirmPassword: confirmPassword)
-                                if viewModel.errorMessage != nil {
-                                    showAlert = true
-                                } else {
+                                let success = await viewModel.register(fullName: fullName,email: email,password: password, confirmPassword: confirmPassword
+                                                                )
+                                if success {
                                     navigateToHome = true
+                                } else {
+                                    showAlert = true
                                 }
                             }
                         } label: {

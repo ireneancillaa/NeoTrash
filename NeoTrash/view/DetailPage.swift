@@ -41,7 +41,7 @@ struct DetailPage: View {
                 .padding()
                 
                 ScrollView {
-                    if viewModel.isLoading {
+                    if viewModel.isLoading && viewModel.latestData == nil {
                         ProgressView().tint(.white).padding(.top, 50)
                     } else if let data = viewModel.latestData {
                         VStack(spacing: 24) {
@@ -84,13 +84,10 @@ struct DetailPage: View {
         }
         .navigationBarHidden(true)
         .onAppear {
-            Task {
-                await viewModel.fetchLatestData()
-            }
-            viewModel.subscribeToDataChanges()
+            viewModel.startMonitoring()
         }
         .onDisappear {
-            viewModel.unsubscribeFromChanges()
+            viewModel.stopMonitoring()
         }
     }
 }

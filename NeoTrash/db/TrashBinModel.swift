@@ -5,7 +5,6 @@
 //  Created by Rizki Ramadhan Wira Saputra on 26/10/25.
 //
 
-// TrashBinModel.swift
 import Foundation
 import Supabase
 import SwiftUI
@@ -15,8 +14,11 @@ import Combine
 class TrashBinModel: ObservableObject {
     
     @Published var trashBins: [TrashBin] = []
+    @Published var latestSensorData: TrashBinData?
     @Published var errorMessage: String?
     @Published var isLoading: Bool = false
+    
+    private var timer: Timer?
     
     private let client = SupabaseClient(
         supabaseURL: URL(string: "https://ktaybvtmllhssroyjjnb.supabase.co")!,
@@ -40,8 +42,10 @@ class TrashBinModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
+        let newBinID = UUID()
+        
         let newBin = TrashBin(
-            id: UUID(),
+            id: newBinID,
             user_id: userID,
             name: name
         )
@@ -53,6 +57,8 @@ class TrashBinModel: ObservableObject {
                 .execute()
             
             trashBins.append(newBin)
+            
+            print("\(newBinID.uuidString.lowercased())")
             
         } catch {
             print("Error creating trash bin: \(error.localizedDescription)")
@@ -83,4 +89,43 @@ class TrashBinModel: ObservableObject {
         }
         isLoading = false
     }
+    func fetchLatestSensorData(binID: UUID) async {
+            do {
+                let response: [TrashBinData] = try await client
+                    .from("trash_bin_data")
+                    .select()
+                    .eq("trash_bin_id", value: binID)
+                    .order("created_at", ascending: false)
+                    .limit(1)
+                    .execute()
+                    .value
+
+                if let data = response.first {
+                    self.latestSensorData = data
+                    print("🔄 Data Update: Bau \(data.smell), Org \(data.us_organik)%")
+                }
+                
+            } catch {
+                print("Error fetching sensor data: \(error.localizedDescription)")
+            }
+        }
+        
+        func startMonitoring(binID: UUID) {
+            stopMonitoring()
+            
+            Task {
+                await fetchLatestSensorData(binID: binID)
+            }
+            
+            timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+                Task {
+                    await self?.fetchLatestSensorData(binID: binID)
+                }
+            }
+        }
+        
+        func stopMonitoring() {
+            timer?.invalidate()
+            timer = nil
+        }
 }

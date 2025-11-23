@@ -15,8 +15,10 @@ class DetailViewModel: ObservableObject {
     
     @Published var latestData: TrashBinData?
     @Published var isLoading = false
-    @Published var isSendingSprayCommand = false
+    @Published var isSendingSprayCommand: Bool = false
     @Published var errorMessage: String?
+    
+    private var timer: Timer?
     
     let trashBin: TrashBin
     
@@ -30,6 +32,20 @@ class DetailViewModel: ObservableObject {
     init(trashBin: TrashBin) {
         self.trashBin = trashBin
     }
+    
+    func startMonitoring() {
+            Task { await fetchLatestData() }
+            timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+                Task {
+                    await self?.fetchLatestData()
+                }
+            }
+        }
+        
+        func stopMonitoring() {
+            timer?.invalidate()
+            timer = nil
+        }
     
     func fetchLatestData() async {
         isLoading = true

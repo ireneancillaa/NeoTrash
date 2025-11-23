@@ -102,7 +102,6 @@ class TrashBinModel: ObservableObject {
 
                 if let data = response.first {
                     self.latestSensorData = data
-                    print("🔄 Data Update: Bau \(data.smell), Org \(data.us_organik)%")
                 }
                 
             } catch {

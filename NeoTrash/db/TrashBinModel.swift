@@ -4,8 +4,8 @@
 //
 //  Created by Rizki Ramadhan Wira Saputra on 26/10/25.
 //
-
 // TrashBinModel.swift
+
 import Foundation
 import Supabase
 import SwiftUI
@@ -17,7 +17,11 @@ class TrashBinModel: ObservableObject {
     @Published var trashBins: [TrashBin] = []
     @Published var errorMessage: String?
     @Published var isLoading: Bool = false
+    @Published var latestSensorData: TrashBinData?
+    @Published var errorMessage: String?
+    @Published var isLoading: Bool = false
     
+    private var timer: Timer?
     private let client = SupabaseClient(
         supabaseURL: URL(string: "https://ktaybvtmllhssroyjjnb.supabase.co")!,
         supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0YXlidnRtbGxoc3Nyb3lqam5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMTQ5ODMsImV4cCI6MjA3NTg5MDk4M30.jkT_NaWL2VxeUAq10fC6FVdhXJSobnDV1TGzNMf9szk"
@@ -39,9 +43,11 @@ class TrashBinModel: ObservableObject {
         
         isLoading = true
         errorMessage = nil
-        
         let newBin = TrashBin(
             id: UUID(),
+        let newBinID = UUID()
+        let newBin = TrashBin(
+            id: newBinID,
             user_id: userID,
             name: name
         )
@@ -53,7 +59,7 @@ class TrashBinModel: ObservableObject {
                 .execute()
             
             trashBins.append(newBin)
-            
+            print("\(newBinID.uuidString.lowercased())")
         } catch {
             print("Error creating trash bin: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
@@ -83,4 +89,41 @@ class TrashBinModel: ObservableObject {
         }
         isLoading = false
     }
-}
+    func fetchLatestSensorData(binID: UUID) async {
+            do {
+                let response: [TrashBinData] = try await client
+                    .from("trash_bin_data")
+                    .select()
+                    .eq("trash_bin_id", value: binID)
+                    .order("created_at", ascending: false)
+                    .limit(1)
+                    .execute()
+                    .value
+
+                if let data = response.first {
+                    self.latestSensorData = data
+                }
+                
+            } catch {
+                print("Error fetching sensor data: \(error.localizedDescription)")
+            }
+        }
+        
+        func startMonitoring(binID: UUID) {
+            stopMonitoring()
+            
+            Task {
+                await fetchLatestSensorData(binID: binID)
+            }
+            
+            timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+                Task {
+                    await self?.fetchLatestSensorData(binID: binID)
+                }
+            }
+        }
+        
+        func stopMonitoring() {
+            timer?.invalidate()
+            timer = nil
+        }

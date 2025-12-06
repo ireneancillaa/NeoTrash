@@ -18,8 +18,6 @@ class TrashBinModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isLoading: Bool = false
     @Published var latestSensorData: TrashBinData?
-    @Published var errorMessage: String?
-    @Published var isLoading: Bool = false
     
     private var timer: Timer?
     private let client = SupabaseClient(
@@ -37,15 +35,15 @@ class TrashBinModel: ObservableObject {
             return nil
         }
     }
-
+    
     func createTrashBin(name: String) async {
         guard let userID = await getUserID() else { return }
         
         isLoading = true
         errorMessage = nil
-        let newBin = TrashBin(
-            id: UUID(),
+        
         let newBinID = UUID()
+        
         let newBin = TrashBin(
             id: newBinID,
             user_id: userID,
@@ -80,7 +78,7 @@ class TrashBinModel: ObservableObject {
                 .eq("user_id", value: userID)
                 .execute()
                 .value
-
+            
             self.trashBins = response
             
         } catch {
@@ -90,40 +88,41 @@ class TrashBinModel: ObservableObject {
         isLoading = false
     }
     func fetchLatestSensorData(binID: UUID) async {
-            do {
-                let response: [TrashBinData] = try await client
-                    .from("trash_bin_data")
-                    .select()
-                    .eq("trash_bin_id", value: binID)
-                    .order("created_at", ascending: false)
-                    .limit(1)
-                    .execute()
-                    .value
-
-                if let data = response.first {
-                    self.latestSensorData = data
-                }
-                
-            } catch {
-                print("Error fetching sensor data: \(error.localizedDescription)")
+        do {
+            let response: [TrashBinData] = try await client
+                .from("trash_bin_data")
+                .select()
+                .eq("trash_bin_id", value: binID)
+                .order("created_at", ascending: false)
+                .limit(1)
+                .execute()
+                .value
+            
+            if let data = response.first {
+                self.latestSensorData = data
             }
+            
+        } catch {
+            print("Error fetching sensor data: \(error.localizedDescription)")
+        }
+    }
+    
+    func startMonitoring(binID: UUID) {
+        stopMonitoring()
+        
+        Task {
+            await fetchLatestSensorData(binID: binID)
         }
         
-        func startMonitoring(binID: UUID) {
-            stopMonitoring()
-            
+        timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             Task {
-                await fetchLatestSensorData(binID: binID)
-            }
-            
-            timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-                Task {
-                    await self?.fetchLatestSensorData(binID: binID)
-                }
+                await self?.fetchLatestSensorData(binID: binID)
             }
         }
-        
-        func stopMonitoring() {
-            timer?.invalidate()
-            timer = nil
-        }
+    }
+    
+    func stopMonitoring() {
+        timer?.invalidate()
+        timer = nil
+    }
+}

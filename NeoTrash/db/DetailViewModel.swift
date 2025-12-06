@@ -15,8 +15,6 @@ class DetailViewModel: ObservableObject {
     
     @Published var latestData: TrashBinData?
     @Published var isLoading = false
-    @Published var isSendingSprayCommand = false
-    @Published var errorMessage: String?
     @Published var isSendingSprayCommand: Bool = false
     @Published var errorMessage: String?
     

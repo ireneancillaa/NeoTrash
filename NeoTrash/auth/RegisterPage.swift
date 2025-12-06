@@ -50,7 +50,7 @@ struct RegisterPage: View {
                             .frame(height: 50)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color("splash"), lineWidth: 2)
+                                    .stroke(Color("splash"), lineWidth: 1)
                             )
                             
                             ZStack(alignment: .leading) {
@@ -69,7 +69,7 @@ struct RegisterPage: View {
                             .frame(height: 50)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color("splash"), lineWidth: 2)
+                                    .stroke(Color("splash"), lineWidth: 1)
                             )
                             
                             ZStack(alignment: .leading) {
@@ -100,7 +100,7 @@ struct RegisterPage: View {
                             .frame(height: 50)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color("splash"), lineWidth: 2)
+                                    .stroke(Color("splash"), lineWidth: 1)
                             )
                             
                             ZStack(alignment: .leading) {
@@ -131,11 +131,41 @@ struct RegisterPage: View {
                             .frame(height: 50)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color("splash"), lineWidth: 2)
+                                    .stroke(Color("splash"), lineWidth: 1)
                             )
                         }
                         
                         Button {
+                            // Validation before calling register
+                            // 1. fullName tidak boleh mengandung angka.
+                            if fullName.rangeOfCharacter(from: .decimalDigits) != nil {
+                                viewModel.errorMessage = "Full Name cannot contain numbers."
+                                showAlert = true
+                                return
+                            }
+                            // 2. Semua field tidak boleh hanya berisi spasi atau kosong.
+                            if fullName.trimmingCharacters(in: .whitespaces).isEmpty ||
+                                email.trimmingCharacters(in: .whitespaces).isEmpty ||
+                                password.trimmingCharacters(in: .whitespaces).isEmpty ||
+                                confirmPassword.trimmingCharacters(in: .whitespaces).isEmpty {
+                                viewModel.errorMessage = "All fields are required and cannot be empty."
+                                showAlert = true
+                                return
+                            }
+                            // 3. email harus sesuai format email umum menggunakan regex sederhana.
+                            let emailRegex = #"^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"#
+                            if !NSPredicate(format: "SELF MATCHES %@", emailRegex).evaluate(with: email) {
+                                viewModel.errorMessage = "Please enter a valid email address."
+                                showAlert = true
+                                return
+                            }
+                            // 4. password dan confirmPassword harus sama
+                            if password != confirmPassword {
+                                viewModel.errorMessage = "Password and Confirm Password do not match."
+                                showAlert = true
+                                return
+                            }
+                            
                             Task {
                                 let success = await viewModel.register(fullName: fullName,email: email,password: password, confirmPassword: confirmPassword
                                                                 )
@@ -185,44 +215,17 @@ struct RegisterPage: View {
                 .font(.subheadline)
                 .padding()
                 .frame(maxHeight: .infinity, alignment: .bottom)
-                
-                GeometryReader { geometry in
-                    if showAlert, let message = viewModel.errorMessage {
-                        VStack {
-                            VStack {
-                                Text(message)
-                                    .foregroundColor(.white)
-                                    .fontWeight(.medium)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(nil)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .padding()
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .background(Color("splash").opacity(0.3))
-                                    .cornerRadius(20)
-                                    .shadow(radius: 5)
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showAlert)
-                            }
-                            .padding(.horizontal)
-                            .padding(.top, geometry.safeAreaInsets.top + 10)
-
-                            Spacer()
-                        }
-                        .ignoresSafeArea(edges: .top)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                withAnimation {
-                                    showAlert = false
-                                }
-                            }
-                        }
-                    }
-                }
             }
             .navigationDestination(isPresented: $navigateToHome) {
                 HomePage()
             }
+            .alert("Error", isPresented: $showAlert, actions: {
+                Button("OK", role: .cancel) {}
+            }, message: {
+                if let message = viewModel.errorMessage {
+                    Text(message)
+                }
+            })
         }
     }
 }

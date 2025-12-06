@@ -25,20 +25,6 @@ struct DetailPage: View {
             Color.black.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                HStack {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title2.weight(.semibold))
-                            .foregroundColor(.white)
-                    }
-                    Spacer()
-                    Text(trashBin.name)
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(.white)
-                    Spacer()
-                    Image(systemName: "chevron.left").opacity(0)
-                }
-                .padding()
                 
                 ScrollView {
                     if viewModel.isLoading && viewModel.latestData == nil {
@@ -70,10 +56,10 @@ struct DetailPage: View {
                     }
                 }) {
                     Text(viewModel.isSendingSprayCommand ? "Spraying..." : "Spray")
-                        .font(.headline.weight(.semibold))
+                        .font(.headline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(viewModel.isSendingSprayCommand ? Color.gray : Color(red: 0.3, green: 0.6, blue: 0.4))
+                        .background(viewModel.isSendingSprayCommand ? Color.gray : Color("splash"))
                         .foregroundColor(.white)
                         .cornerRadius(12)
                 }
@@ -82,7 +68,16 @@ struct DetailPage: View {
                 
             }
         }
-        .navigationBarHidden(true)
+        .navigationTitle(trashBin.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(trashBin.name)
+                    .font(.title2.weight(.black))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
         .onAppear {
             viewModel.startMonitoring()
         }

@@ -47,7 +47,7 @@ struct LoginPage: View {
                             .frame(height: 50)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color("splash"), lineWidth: 2)
+                                    .stroke(Color("splash"), lineWidth: 1)
                             )
 
                             ZStack(alignment: .leading) {
@@ -78,7 +78,7 @@ struct LoginPage: View {
                             .frame(height: 50)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color("splash"), lineWidth: 2)
+                                    .stroke(Color("splash"), lineWidth: 1)
                             )
                         }
                         
@@ -129,44 +129,17 @@ struct LoginPage: View {
                 .font(.subheadline)
                 .padding()
                 .frame(maxHeight: .infinity, alignment: .bottom)
-                
-                GeometryReader { geometry in
-                    if showAlert, let message = viewModel.errorMessage {
-                        VStack {
-                            VStack {
-                                Text(message)
-                                    .foregroundColor(.white)
-                                    .fontWeight(.medium)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(nil)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .padding()
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .background(Color("splash").opacity(0.3))
-                                    .cornerRadius(20)
-                                    .shadow(radius: 5)
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showAlert)
-                            }
-                            .padding(.horizontal)
-                            .padding(.top, geometry.safeAreaInsets.top + 10)
-
-                            Spacer()
-                        }
-                        .ignoresSafeArea(edges: .top)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                withAnimation {
-                                    showAlert = false
-                                }
-                            }
-                        }
-                    }
-                }
             }
             .navigationDestination(isPresented: $viewModel.isAuthenticated) {
                 HomePage()
             }
+            .alert("Error", isPresented: $showAlert, actions: {
+                Button("OK", role: .cancel) { }
+            }, message: {
+                if let message = viewModel.errorMessage {
+                    Text(message)
+                }
+            })
         }
     }
 }

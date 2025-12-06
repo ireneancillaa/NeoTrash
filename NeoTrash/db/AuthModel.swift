@@ -22,10 +22,15 @@ class AuthModel: ObservableObject {
     @Published var isAuthenticated: Bool = false
     @Published var isLoading: Bool = false
 
-    private let client = SupabaseClient(
-        supabaseURL: URL(string: "https://ktaybvtmllhssroyjjnb.supabase.co")!,
-        supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0YXlidnRtbGxoc3Nyb3lqam5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMTQ5ODMsImV4cCI6MjA3NTg5MDk4M30.jkT_NaWL2VxeUAq10fC6FVdhXJSobnDV1TGzNMf9szk"
-    )
+    private let client: SupabaseClient = {
+        guard let url = URL(string: "https://ktaybvtmllhssroyjjnb.supabase.co") else {
+            fatalError("Invalid Supabase URL")
+        }
+        return SupabaseClient(
+            supabaseURL: url,
+            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0YXlidnRtbGxoc3Nyb3lqam5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMTQ5ODMsImV4cCI6MjA3NTg5MDk4M30.jkT_NaWL2VxeUAq10fC6FVdhXJSobnDV1TGzNMf9szk"
+        )
+    }()
 
     func register(fullName: String, email: String, password: String, confirmPassword: String) async -> Bool {
         
@@ -92,6 +97,44 @@ class AuthModel: ObservableObject {
         }
     }
     
+    func fetchUser() async {
+        do {
+            var user: User?
+
+            // PRIORITAS 1 — jika SDK mendukung client.auth.user()
+            if let fetchedUser = try? await client.auth.user() {
+                user = fetchedUser
+            }
+
+            // PRIORITAS 2 — fallback: ambil dari session
+            if user == nil {
+                let session = try await client.auth.session
+                user = session.user
+            }
+
+            guard let user = user else {
+                throw NSError(domain: "UserNil", code: 0)
+            }
+
+            // Email
+            email = user.email ?? ""
+
+            // Full name dari metadata
+            let meta = user.userMetadata
+            fullName = meta["full_name"]?.stringValue ?? ""
+            
+            isAuthenticated = true
+            password = ""
+
+        } catch {
+            isAuthenticated = false
+            email = ""
+            fullName = ""
+            errorMessage = "Unable to fetch user."
+            print("Fetch user error:", error)
+        }
+    }
+    
     private func validateInput(fullName: String, email: String, password: String, confirmPassword: String) -> Bool {
         guard !fullName.isEmpty, !email.isEmpty, !password.isEmpty, !confirmPassword.isEmpty else {
             errorMessage = "Please fill all fields."
@@ -131,5 +174,11 @@ class AuthModel: ObservableObject {
                 print("Unexpected Error: \(error.localizedDescription)")
             }
         }
+    }
+    
+    func logout() {
+        fullName = ""
+        email = ""
+        isAuthenticated = false
     }
 }

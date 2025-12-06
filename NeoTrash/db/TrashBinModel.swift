@@ -4,7 +4,6 @@
 //
 //  Created by Rizki Ramadhan Wira Saputra on 26/10/25.
 //
-// TrashBinModel.swift
 
 import Foundation
 import Supabase
@@ -80,13 +79,13 @@ class TrashBinModel: ObservableObject {
                 .value
             
             self.trashBins = response
-            
         } catch {
             print("Error fetching trash bins: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
         }
         isLoading = false
     }
+    
     func fetchLatestSensorData(binID: UUID) async {
         do {
             let response: [TrashBinData] = try await client
@@ -101,7 +100,6 @@ class TrashBinModel: ObservableObject {
             if let data = response.first {
                 self.latestSensorData = data
             }
-            
         } catch {
             print("Error fetching sensor data: \(error.localizedDescription)")
         }

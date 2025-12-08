@@ -91,8 +91,17 @@ struct NotificationPage: View {
     }
     
     func deleteNotification(at offsets: IndexSet) {
+        
+        let idsToDelete = offsets.map { viewModel.notifications[$0].id }
+        
         withAnimation {
             viewModel.notifications.remove(atOffsets: offsets)
+        }
+        
+        Task {
+            for id in idsToDelete {
+                await viewModel.deleteNotification(id: id)
+            }
         }
     }
 }

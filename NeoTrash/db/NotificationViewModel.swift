@@ -52,6 +52,19 @@ class NotificationViewModel: ObservableObject {
         }
         isLoading = false
     }
+    
+    func deleteNotification(id: UUID) async {
+            do {
+                try await client
+                    .from("notifications")
+                    .delete()
+                    .eq("id", value: id)
+                    .execute()
+                print("Notifikasi berhasil dihapus dari database")
+            } catch {
+                print("Gagal menghapus notifikasi: \(error)")
+            }
+        }
 
     func subscribeToAlerts() {
         let channel = client.realtimeV2.channel("public:notifications")

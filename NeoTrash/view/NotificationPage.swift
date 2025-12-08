@@ -30,14 +30,9 @@ struct NotificationPage: View {
                 
                 VStack(spacing: 0) {
                     Text("Notification")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 30, weight: .black))
                         .foregroundColor(.white)
-                        .padding(.top, 10)
-                        .padding(.bottom, 5)
-                    
-                    Divider()
-                        .background(Color.gray.opacity(0.5))
-                        .padding(.bottom, 10)
+                        .padding(.bottom, 15)
 
                     if viewModel.isLoading && viewModel.notifications.isEmpty {
                         ProgressView().tint(.white).padding(.top, 50)
@@ -60,11 +55,21 @@ struct NotificationPage: View {
                                     message: item.message,
                                     date: item.formattedDate
                                 ))
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        if let index = viewModel.notifications.firstIndex(where: { $0.id == item.id }) {
+                                            deleteNotification(at: IndexSet(integer: index))
+                                        }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.white)
+                                    }
+                                    .tint(.red)
+                                }
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                             }
-                            .onDelete(perform: deleteNotification)
                         }
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
@@ -130,11 +135,11 @@ struct NotificationCard: View {
             Spacer()
         }
         .padding()
-        .background(Color(UIColor.systemGray6).opacity(0.3))
+        .background(Color("splash").opacity(0.2))
         .cornerRadius(15)
         .overlay(
             RoundedRectangle(cornerRadius: 15)
-                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                .stroke(Color.white.opacity(0.15), lineWidth: 1)
         )
     }
 }

@@ -216,9 +216,6 @@ struct RegisterPage: View {
                 .padding()
                 .frame(maxHeight: .infinity, alignment: .bottom)
             }
-            .navigationDestination(isPresented: $navigateToHome) {
-                HomePage()
-            }
             .alert("Error", isPresented: $showAlert, actions: {
                 Button("OK", role: .cancel) {}
             }, message: {
@@ -226,6 +223,9 @@ struct RegisterPage: View {
                     Text(message)
                 }
             })
+            .fullScreenCover(isPresented: $navigateToHome) {
+                HomePage()
+            }
         }
     }
 }

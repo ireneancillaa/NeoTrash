@@ -130,9 +130,6 @@ struct LoginPage: View {
                 .padding()
                 .frame(maxHeight: .infinity, alignment: .bottom)
             }
-            .navigationDestination(isPresented: $viewModel.isAuthenticated) {
-                HomePage()
-            }
             .alert("Error", isPresented: $showAlert, actions: {
                 Button("OK", role: .cancel) { }
             }, message: {
@@ -140,6 +137,9 @@ struct LoginPage: View {
                     Text(message)
                 }
             })
+            .fullScreenCover(isPresented: $viewModel.isAuthenticated) {
+                HomePage()
+            }
         }
     }
 }

@@ -19,7 +19,6 @@ class DetailViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     private var timer: Timer?
-    
     let trashBin: TrashBin
     
     private let client = SupabaseClient(
@@ -83,6 +82,8 @@ class DetailViewModel: ObservableObject {
                 .update(["servo_stella": true])
                 .eq("id", value: trashBin.id)
                 .execute()
+            
+            print("Spray command send succesfully")
             
         } catch {
             let errorDesc = error.localizedDescription

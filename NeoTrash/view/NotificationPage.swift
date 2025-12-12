@@ -85,7 +85,7 @@ struct NotificationPage: View {
                 viewModel.subscribeToAlerts()
             }
             .onDisappear {
-                viewModel.unsubscribe()
+//                viewModel.unsubscribe()
             }
         }
     }

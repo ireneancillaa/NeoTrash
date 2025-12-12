@@ -12,6 +12,7 @@ struct DetailPage: View {
     let trashBin: TrashBin
     
     @StateObject private var viewModel: DetailViewModel
+    @State private var showDeleteConfirmation = false
     
     @Environment(\.dismiss) var dismiss
     
@@ -31,13 +32,27 @@ struct DetailPage: View {
                         ProgressView().tint(.white).padding(.top, 50)
                     } else if let data = viewModel.latestData {
                         VStack(spacing: 24) {
+                            
                             AnOrganicCard(
                                 fillLevel: data.us_nonorganik,
-                                smellLevel: data.smell
+                                smellLevel: data.smell,
+                                isOpening: viewModel.isOpeningNonOrganic,
+                                onOpen: {
+                                    Task {
+                                        await viewModel.openNonOrganicBin()
+                                    }
+                                }
                             )
+                            
                             OrganicCard(
                                 fillLevel: data.us_organik,
-                                smellLevel: data.smell
+                                smellLevel: data.smell,
+                                isOpening: viewModel.isOpeningOrganic,
+                                onOpen: {
+                                    Task {
+                                        await viewModel.openOrganicBin()
+                                    }
+                                }
                             )
                         }
                         .padding()
@@ -77,6 +92,29 @@ struct DetailPage: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showDeleteConfirmation = true
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.red)
+                }
+            }
+        }
+        .alert("Delete Trash Bin?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                Task {
+                    let success = await viewModel.deleteTrashBin()
+                    if success {
+                        dismiss()
+                    }
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this trash bin? This action cannot be undone.")
         }
         .onAppear {
             viewModel.startMonitoring()
@@ -90,6 +128,8 @@ struct DetailPage: View {
 private struct AnOrganicCard: View {
     let fillLevel: Double
     let smellLevel: Double
+    let isOpening: Bool
+    let onOpen: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -106,6 +146,24 @@ private struct AnOrganicCard: View {
             
             HStack {
                 SmellGauge(percentage: smellLevel)
+                
+                Spacer()
+                
+                Button(action: onOpen) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "arrow.up.bin.fill")
+                            .font(.system(size: 24))
+                        
+                        Text(isOpening ? "Opening..." : "Open Lid")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                    }
+                    .frame(width: 80, height: 70)
+                    .background(isOpening ? Color.black : Color.white.opacity(0.2))
+                    .cornerRadius(10)
+                    .foregroundColor(.white)
+                }
+                .disabled(isOpening)
             }
         }
         .padding()
@@ -118,6 +176,8 @@ private struct AnOrganicCard: View {
 private struct OrganicCard: View {
     let fillLevel: Double
     let smellLevel: Double
+    let isOpening: Bool
+    let onOpen: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -134,6 +194,24 @@ private struct OrganicCard: View {
             
             HStack {
                 SmellGauge(percentage: smellLevel)
+                
+                Spacer()
+                
+                Button(action: onOpen) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "arrow.up.bin.fill")
+                            .font(.system(size: 24))
+                        
+                        Text(isOpening ? "Opening..." : "Open Lid")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                    }
+                    .frame(width: 80, height: 70)
+                    .background(isOpening ? Color.black : Color.white.opacity(0.2))
+                    .cornerRadius(10)
+                    .foregroundColor(.white)
+                }
+                .disabled(isOpening)
             }
         }
         .padding()
@@ -149,22 +227,22 @@ private struct SmellGauge: View {
     var body: some View {
         VStack(spacing: 8) {
             Text("Smell")
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.white)
             
             Gauge(value: percentage / 100.0) {
             } currentValueLabel: {
                 Text("\(Int(percentage))%")
-                    .font(.title3.weight(.bold))
+                    .font(.caption.weight(.bold))
             }
             .gaugeStyle(.accessoryCircularCapacity)
             .tint(.orange)
-            .scaleEffect(1.5)
-            .frame(height: 80)
-            .padding(.bottom, 10)
+            .scaleEffect(1.2)
+            .frame(width: 60, height: 60)
+            .padding(.bottom, 5)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
+        .frame(width: 100)
+        .padding(.vertical, 10)
         .background(Color.black.opacity(0.2))
         .cornerRadius(10)
         .overlay(

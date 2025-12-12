@@ -16,6 +16,9 @@ class DetailViewModel: ObservableObject {
     @Published var latestData: TrashBinData?
     @Published var isLoading = false
     @Published var isSendingSprayCommand: Bool = false
+    @Published var isOpeningOrganic: Bool = false
+    @Published var isOpeningNonOrganic: Bool = false
+    
     @Published var errorMessage: String?
     
     private var timer: Timer?
@@ -33,18 +36,18 @@ class DetailViewModel: ObservableObject {
     }
     
     func startMonitoring() {
-            Task { await fetchLatestData() }
-            timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-                Task {
-                    await self?.fetchLatestData()
-                }
+        Task { await fetchLatestData() }
+        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            Task {
+                await self?.fetchLatestData()
             }
         }
+    }
         
-        func stopMonitoring() {
-            timer?.invalidate()
-            timer = nil
-        }
+    func stopMonitoring() {
+        timer?.invalidate()
+        timer = nil
+    }
     
     func fetchLatestData() async {
         isLoading = true
@@ -95,6 +98,70 @@ class DetailViewModel: ObservableObject {
             self.isSendingSprayCommand = false
         }
     }
+    
+    func openOrganicBin() async {
+        guard !isOpeningOrganic else { return }
+        isOpeningOrganic = true
+        errorMessage = nil
+        
+        do {
+            try await client
+                .from("trash_bins")
+                .update(["servo_organik": true])
+                .eq("id", value: trashBin.id)
+                .execute()
+            
+            print("Perintah buka Organik terkirim")
+        } catch {
+            print("Error opening organic bin: \(error.localizedDescription)")
+            errorMessage = "Gagal membuka tong Organik"
+        }
+        
+        try? await Task.sleep(nanoseconds: 30_000_000_000)
+        
+        self.isOpeningOrganic = false
+    }
+    
+    func openNonOrganicBin() async {
+        guard !isOpeningNonOrganic else { return }
+        isOpeningNonOrganic = true
+        errorMessage = nil
+        
+        do {
+            try await client
+                .from("trash_bins")
+                .update(["servo_nonorganik": true])
+                .eq("id", value: trashBin.id)
+                .execute()
+            
+            print("Perintah buka Non-Organik terkirim")
+        } catch {
+            print("Error opening non-organic bin: \(error.localizedDescription)")
+            errorMessage = "Gagal membuka tong Non-Organik"
+        }
+        
+        try? await Task.sleep(nanoseconds: 30_000_000_000)
+        
+        self.isOpeningNonOrganic = false
+    }
+    
+    func deleteTrashBin() async -> Bool {
+            isLoading = true
+            do {
+                try await client
+                    .from("trash_bins")
+                    .delete()
+                    .eq("id", value: trashBin.id)
+                    .execute()
+    
+                isLoading = false
+                return true
+            } catch {
+                isLoading = false
+                errorMessage = error.localizedDescription
+                return false
+            }
+        }
     
     func subscribeToDataChanges() {
         let channelName = "public:trash_bin_data:id=\(trashBin.id)"
